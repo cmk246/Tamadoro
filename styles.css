@@ -1,0 +1,377 @@
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Outfit:wght@300;400;600;800;900&family=Space+Mono:wght@400;700&family=Comic+Neue:wght@700&family=Nanum+Pen+Script&display=swap');
+
+/* =====================================================
+   ROOT TOKENS
+   ===================================================== */
+:root {
+  --ui-opacity: 0.85;
+  --ui-radius: 24px;
+  --timer-font: 'Outfit', sans-serif;
+  --timer-scale: 1;
+  --timer-glow: transparent;
+
+  /* Palette */
+  --clr-tomato:   #ef4444;
+  --clr-emerald:  #10b981;
+  --clr-amber:    #f59e0b;
+  --clr-stone-50: #fafaf9;
+  --clr-glass-border: rgba(255,255,255,0.55);
+  --clr-shadow:   rgba(120,53,15,0.10);
+
+  /* Easing */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =====================================================
+   BASE
+   ===================================================== */
+body {
+  font-family: 'Gowun Dodum', 'Outfit', sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================================
+   BACKGROUND
+   ===================================================== */
+.desktop-bg {
+  /* Richer multi-stop warm radial gradient */
+  background:
+    radial-gradient(ellipse at 80% 10%, #ffe4e6 0%, transparent 55%),
+    radial-gradient(ellipse at 10% 90%, #fde68a 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, #fff7ed 0%, #fef3c7 40%, #fee2e2 75%, #f5f0ee 100%);
+}
+
+/* Subtle ambient light blob — purely decorative, no pointer events */
+.desktop-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(251,191,36,0.13) 0%, transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(239,68,68,0.10) 0%, transparent 45%);
+}
+
+/* =====================================================
+   GLASS WIDGET
+   ===================================================== */
+.glass-widget {
+  background: rgba(255,255,255,var(--ui-opacity));
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid var(--clr-glass-border);
+  border-radius: var(--ui-radius) !important;
+  /* Layered shadow: soft outer + crisp inner highlight */
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.7) inset,       /* top inner highlight */
+    0 -1px 0 0 rgba(0,0,0,0.04) inset,            /* bottom inner shadow */
+    0 8px 24px -4px var(--clr-shadow),
+    0 24px 48px -8px rgba(120,53,15,0.06);
+  transition: opacity 0.3s var(--ease-out),
+              box-shadow 0.3s var(--ease-out),
+              border-radius 0.3s ease;
+}
+
+.glass-widget:hover {
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.7) inset,
+    0 -1px 0 0 rgba(0,0,0,0.04) inset,
+    0 12px 32px -4px var(--clr-shadow),
+    0 32px 56px -8px rgba(120,53,15,0.09);
+}
+
+/* =====================================================
+   SCENE BACKGROUNDS (Focus Overlay)
+   ===================================================== */
+.focus-mode-bg { transition: all 1.5s ease-in-out; }
+
+/* Lo-Fi: warm dark with amber bloom */
+.scene-lofi {
+  background: linear-gradient(145deg, #1a0e08 0%, #2c1b10 40%, #3b1f18 70%, #1a0c08 100%);
+}
+.scene-lofi::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 1;
+  background:
+    radial-gradient(ellipse at 65% 25%, rgba(251,146,60,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 75%, rgba(180,83,9,0.12) 0%, transparent 45%);
+}
+
+/* Cyber: deep navy with cyan grid & scanlines */
+.scene-cyber {
+  background: linear-gradient(145deg, #020408 0%, #0a0f1e 50%, #060c1a 100%);
+}
+.scene-cyber::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 10;
+  opacity: 0.25;
+  background:
+    linear-gradient(rgba(6,182,212,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6,182,212,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.scene-cyber::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 11;
+  opacity: 0.08;
+  background: repeating-linear-gradient(
+    0deg, rgba(0,0,0,0.5) 0px, rgba(0,0,0,0.5) 1px, transparent 1px, transparent 2px
+  );
+}
+
+/* Nature/Rain: deep teal-to-green */
+.scene-rain {
+  background: linear-gradient(160deg, #0c1520 0%, #0f2b1c 50%, #071a12 100%);
+}
+.scene-rain::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at 30% 40%, rgba(16,185,129,0.12) 0%, transparent 60%);
+}
+
+.scene-zen { background: #f8f9fa; }
+
+/* =====================================================
+   WEATHER PARTICLES
+   ===================================================== */
+.noise-filter {
+  position: fixed; inset: 0; z-index: 9;
+  opacity: 0.045; pointer-events: none; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.particle {
+  position: absolute;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  pointer-events: none; z-index: 6;
+  animation: floatUp 20s infinite linear;
+  filter: blur(1px);
+}
+@keyframes floatUp {
+  0%   { transform: translateY(100vh) translateX(0)    scale(0.8); opacity: 0; }
+  8%   { opacity: 0.8; }
+  92%  { opacity: 0.6; }
+  100% { transform: translateY(-10vh) translateX(80px) scale(1.2); opacity: 0; }
+}
+
+#time-overlay, #weather-overlay {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 4; overflow: hidden;
+}
+#time-overlay { z-index: 2; transition: background 2s ease-in-out; }
+
+.weather-rain {
+  position: absolute; width: 1.5px; height: 90px;
+  background: linear-gradient(transparent, rgba(186,230,253,0.55));
+  animation: rainDrop linear infinite;
+  border-radius: 2px;
+}
+.weather-snow {
+  position: absolute; width: 5px; height: 5px;
+  background: white; border-radius: 50%;
+  filter: blur(1.5px);
+  animation: snowFall linear infinite;
+}
+@keyframes rainDrop {
+  0%   { transform: translateY(-110px) rotate(12deg); }
+  100% { transform: translateY(100vh)  rotate(12deg); }
+}
+@keyframes snowFall {
+  0%   { transform: translateY(-10px) translateX(0);   opacity: 1; }
+  100% { transform: translateY(100vh)  translateX(24px); opacity: 0.2; }
+}
+
+/* =====================================================
+   OVERLAYS
+   ===================================================== */
+#custom-bg-layer {
+  position: fixed; inset: 0; z-index: -1;
+  background-size: cover; background-position: center;
+  transition: opacity 1.2s var(--ease-out);
+}
+
+.focus-overlay {
+  position: fixed; inset: 0; z-index: 5;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(5px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 1s var(--ease-out);
+}
+.focus-active .focus-overlay { opacity: 1; }
+
+/* =====================================================
+   FOCUS HIDE
+   ===================================================== */
+.focus-active .hide-on-focus {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(16px) scale(0.98) !important;
+  transition: all 0.45s var(--ease-out);
+}
+
+/* =====================================================
+   TIMER THEMES
+   ===================================================== */
+.timer-theme-neon #timer-progress-ring {
+  filter: drop-shadow(0 0 10px var(--timer-glow)) drop-shadow(0 0 24px var(--timer-glow));
+  stroke-width: 8;
+}
+.timer-theme-forest #timer-progress-ring {
+  stroke-linecap: butt;
+  stroke-dasharray: 12 4;
+}
+.timer-theme-gold #timer-progress-ring {
+  stroke-width: 12;
+  stroke: url(#goldGradient);
+}
+
+/* =====================================================
+   DRAG HANDLES
+   ===================================================== */
+.widget-container { position: absolute; }
+
+.drag-handle {
+  cursor: grab;
+  width: 100%; height: 22px;
+  border-radius: 20px 20px 0 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+/* Drag indicator pill */
+.drag-handle::after {
+  content: '';
+  display: block;
+  width: 32px; height: 3px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 99px;
+}
+.widget-container:hover .drag-handle {
+  opacity: 1;
+  background: rgba(0,0,0,0.04);
+}
+.drag-handle:active { cursor: grabbing; }
+
+#widget-timer { cursor: grab; }
+#widget-timer:active { cursor: grabbing; }
+
+/* =====================================================
+   CUSTOM SCROLLBAR
+   ===================================================== */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.02); border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(239,68,68,0.22); border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(239,68,68,0.4);
+}
+
+/* =====================================================
+   RESIZABLE
+   ===================================================== */
+.resizable { resize: both; overflow: hidden; min-width: 240px; min-height: 150px; }
+
+/* =====================================================
+   HEADER POLISH
+   ===================================================== */
+header {
+  background: rgba(255,255,255,0.65) !important;
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-bottom: 1px solid rgba(255,255,255,0.5) !important;
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.04), 0 4px 16px -4px rgba(120,53,15,0.07);
+}
+
+/* =====================================================
+   TASKBAR POLISH
+   ===================================================== */
+#taskbar {
+  background: rgba(255,255,255,0.82) !important;
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255,255,255,0.6) !important;
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.8) inset,
+    0 8px 32px -4px rgba(0,0,0,0.12),
+    0 2px 8px -2px rgba(0,0,0,0.08);
+}
+
+/* =====================================================
+   PET SPEECH BUBBLE POLISH
+   ===================================================== */
+#char-speech-bubble {
+  background: rgba(15,23,42,0.88) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 4px 16px -2px rgba(0,0,0,0.3);
+  font-size: 10.5px !important;
+  letter-spacing: 0.01em;
+}
+/* Little triangle pointer at bottom */
+#char-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid rgba(15,23,42,0.88);
+}
+
+/* =====================================================
+   BUTTON MICRO-INTERACTIONS
+   ===================================================== */
+#btn-timer-start, #btn-timer-pause, #btn-timer-skip {
+  transition: transform 0.15s var(--ease-spring), box-shadow 0.15s ease, background 0.15s ease !important;
+}
+#btn-timer-start:hover  { transform: scale(1.04) translateY(-1px); }
+#btn-timer-start:active { transform: scale(0.96); }
+
+/* =====================================================
+   GOD MODE MODAL
+   ===================================================== */
+#god-mode-modal {
+  background: rgba(255,255,255,0.97) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(0,0,0,0.07) !important;
+  box-shadow: -8px 0 48px -8px rgba(0,0,0,0.14);
+}
+
+/* =====================================================
+   CUSTOM ALERT
+   ===================================================== */
+#custom-alert-box {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.6) inset,
+    0 24px 64px -8px rgba(0,0,0,0.20);
+  border-radius: 28px !important;
+}
+
+/* =====================================================
+   TIMER RING GLOW (focus active)
+   ===================================================== */
+#timer-progress-ring {
+  filter: drop-shadow(0 0 4px rgba(239,68,68,0.35));
+  transition: stroke-dashoffset 0.4s var(--ease-out), stroke 0.5s ease, filter 0.3s ease;
+}
+
+/* =====================================================
+   STATUS BARS
+   ===================================================== */
+#affection-bar { border-radius: 99px; background: linear-gradient(90deg, #f87171, #ef4444); }
+#hunger-bar    { border-radius: 99px; background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
+#thirst-bar    { border-radius: 99px; background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+

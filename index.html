@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>다마도로 (Damadoro)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body id="main-body" class="desktop-bg text-stone-800 min-h-screen relative select-none">
+
+  <!-- Overlays -->
+  <div id="custom-bg-layer" style="opacity: 0;"></div>
+  <div class="noise-filter hide-on-focus" id="noise-filter"></div>
+  <div id="time-overlay"></div>
+  <div id="weather-overlay"></div>
+
+  <!-- Focus Overlay -->
+  <div id="focus-overlay" class="focus-overlay focus-mode-bg">
+    <div class="particle" style="left: 10%; width: 10px; height: 10px; animation-duration: 25s; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 30%; width: 15px; height: 15px; animation-duration: 20s; animation-delay: 5s;"></div>
+    <div class="particle" style="left: 50%; width: 8px; height: 8px; animation-duration: 30s; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 70%; width: 12px; height: 12px; animation-duration: 22s; animation-delay: 8s;"></div>
+    <div class="particle" style="left: 90%; width: 20px; height: 20px; animation-duration: 28s; animation-delay: 3s;"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="absolute top-0 left-0 right-0 h-14 bg-white/60 backdrop-blur-md border-b border-stone-200/50 px-6 flex justify-between items-center z-30 transition-all hide-on-focus">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🍅</span>
+      <div><h1 class="text-sm font-black text-red-600 tracking-tight flex items-center gap-1.5">다마도로 컴패니언</h1></div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-sm">
+        <span class="text-[11px] text-emerald-700 font-extrabold">🍃 잎사귀:</span><span id="leaf-count" class="text-xs font-black text-emerald-800">150</span>
+      </div>
+      <button id="btn-god-mode" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] px-3 py-1.5 rounded-full shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-1.5 hover:scale-105">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> God Mode
+      </button>
+    </div>
+  </header>
+
+  <!-- Taskbar: must be outside header, fixed to bottom -->
+  <div id="taskbar" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-stone-200/50 rounded-full px-4 py-2 z-50 flex items-center gap-2 shadow-2xl transition-all hide-on-focus min-w-[50px] min-h-[50px] empty:hidden">
+  </div>
+
+  <!-- ==================== WIDGET 1: CENTRAL TIMER ==================== -->
+  <div id="widget-timer" class="widget-container z-40 flex flex-col items-center justify-center transition-all duration-300 w-[420px] glass-widget p-10 rounded-[40px]" style="top: 20%; left: 35%;">
+    
+    <div class="w-full flex justify-between items-center mb-6 px-2 pointer-events-none">
+      <span id="char-status-badge" class="bg-red-500/10 text-red-700 border border-red-500/20 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm">🎯 집중 세션</span>
+      <div id="streak-circles" class="flex gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-full border border-stone-200 bg-stone-100"></div><div class="w-2.5 h-2.5 rounded-full border border-stone-200 bg-stone-100"></div>
+        <div class="w-2.5 h-2.5 rounded-full border border-stone-200 bg-stone-100"></div><div class="w-2.5 h-2.5 rounded-full border border-stone-200 bg-stone-100"></div>
+      </div>
+    </div>
+
+    <!-- Timer Views -->
+    <div id="widget-timer-content" class="flex flex-col items-center w-full pointer-events-none" style="transform: scale(var(--timer-scale)); transform-origin: center;">
+      <!-- View 1: Circle Ring -->
+      <div id="timer-view-ring" class="relative w-72 h-72 flex items-center justify-center">
+        <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 240 240">
+          <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+              <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="120" cy="120" r="110" fill="transparent" stroke="rgba(0,0,0,0.05)" stroke-width="8" />
+          <circle id="timer-progress-ring" cx="120" cy="120" r="110" fill="transparent" stroke="#ef4444" stroke-width="8" stroke-dasharray="691.15" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-300" />
+        </svg>
+        <div class="text-center z-10 pointer-events-none">
+          <span id="timer-clock" class="text-6xl font-black text-stone-800 tracking-tight" style="font-family: var(--timer-font);">25:00</span>
+          <div id="timer-state-label" class="text-sm font-bold text-stone-400 uppercase tracking-widest mt-2">Focus</div>
+        </div>
+      </div>
+      <!-- View 2: Digital -->
+      <div id="timer-view-digital" class="hidden relative w-full h-40 flex flex-col items-center justify-center bg-stone-900 rounded-3xl border-4 border-stone-800 shadow-inner">
+         <span id="timer-clock-digital" class="text-[5.5rem] leading-none font-mono font-black text-red-500 tracking-widest drop-shadow-md pointer-events-none" style="font-family: var(--timer-font);">25:00</span>
+         <div id="timer-state-label-digital" class="text-xs font-bold text-stone-500 uppercase tracking-widest mt-2 pointer-events-none">Focus</div>
+      </div>
+      <!-- View 3: Liquid -->
+      <div id="timer-view-liquid" class="hidden relative w-72 h-72 flex flex-col items-center justify-center rounded-full border-[6px] border-white overflow-hidden bg-stone-100 shadow-inner">
+        <div id="timer-liquid-wave" class="absolute bottom-0 left-0 right-0 bg-red-400/90 transition-all duration-1000 pointer-events-none" style="height: 100%;"></div>
+        <div class="text-center z-10 relative pointer-events-none">
+          <span id="timer-clock-liquid" class="text-6xl font-black text-stone-900 tracking-tight drop-shadow-sm" style="font-family: var(--timer-font);">25:00</span>
+          <div id="timer-state-label-liquid" class="text-xs font-bold text-white uppercase tracking-widest drop-shadow-md mt-2">Focus</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="longbreak-shield-alert" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-center text-xs font-bold text-amber-800 mt-6 hidden pointer-events-none">
+      <i class="fa-solid fa-shield-halved animate-bounce"></i> 뇌휴식 잠금 가동 중<br>
+      <span id="longbreak-shield-timer" class="text-[10px] text-amber-600 block mt-1">15:00 후 스킵 가능</span>
+    </div>
+
+    <!-- Buttons -->
+    <div class="w-full flex justify-center gap-4 mt-8">
+      <button id="btn-timer-start" class="bg-red-500 hover:bg-red-600 text-white font-extrabold py-4 px-10 rounded-[20px] text-xl flex items-center justify-center gap-2 shadow-xl shadow-red-500/30 transition-all hover:scale-105 active:scale-95"><i class="fa-solid fa-play"></i> START</button>
+      <button id="btn-timer-pause" class="bg-stone-100 hover:bg-stone-200 text-stone-600 font-extrabold py-4 px-10 rounded-[20px] text-xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"><i class="fa-solid fa-pause"></i> PAUSE</button>
+      <button id="btn-timer-skip" class="hidden bg-stone-100 hover:bg-stone-200 text-stone-600 font-extrabold py-4 px-8 rounded-[20px] text-lg flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"><i class="fa-solid fa-forward-step"></i> SKIP</button>
+    </div>
+  </div>
+
+  <!-- ==================== WIDGET 2: STATUS ==================== -->
+  <div id="widget-status" class="widget-container resizable absolute w-72 glass-widget rounded-3xl p-5 z-20 hide-on-focus" style="bottom: 24px; left: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-3 mt-1">
+      <h3 class="text-xs font-black text-stone-700" id="current-partner-name">방울토마토의 상태</h3>
+    </div>
+    <div class="flex flex-col gap-2.5 pointer-events-none">
+      <div>
+        <div class="flex justify-between text-[10px] font-bold text-stone-500 mb-0.5"><span>💖 애정도</span><span id="affection-text">50%</span></div>
+        <div class="w-full bg-stone-200/50 h-2 rounded-full overflow-hidden"><div id="affection-bar" class="bg-red-500 h-full transition-all" style="width: 50%;"></div></div>
+      </div>
+      <div>
+        <div class="flex justify-between text-[10px] font-bold text-stone-500 mb-0.5"><span>🍼 비료도</span><span id="hunger-text">80%</span></div>
+        <div class="w-full bg-stone-200/50 h-2 rounded-full overflow-hidden"><div id="hunger-bar" class="bg-sky-500 h-full transition-all" style="width: 80%;"></div></div>
+      </div>
+      <div>
+        <div class="flex justify-between text-[10px] font-bold text-stone-500 mb-0.5"><span>💧 수분도</span><span id="thirst-text">90%</span></div>
+        <div class="w-full bg-stone-200/50 h-2 rounded-full overflow-hidden"><div id="thirst-bar" class="bg-blue-400 h-full transition-all" style="width: 90%;"></div></div>
+      </div>
+    </div>
+
+    <!-- 상호작용 버튼 -->
+    <div class="mt-3 pt-3 border-t border-stone-100 grid grid-cols-3 gap-2">
+      <button id="btn-pet-stroke" class="flex flex-col items-center gap-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-400 text-rose-600 font-black text-[10px] py-2 rounded-2xl transition-all hover:scale-105 active:scale-95">
+        <span class="text-base">🖐️</span><span>쓰다듬기</span><span class="text-[8px] font-bold text-rose-400">💖 +5</span>
+      </button>
+      <button id="btn-pet-feed" class="flex flex-col items-center gap-1 bg-sky-50 hover:bg-sky-100 border border-sky-200 hover:border-sky-400 text-sky-600 font-black text-[10px] py-2 rounded-2xl transition-all hover:scale-105 active:scale-95">
+        <span class="text-base">🌱</span><span>비료주기</span><span class="text-[8px] font-bold text-sky-400">🍼 +20</span>
+      </button>
+      <button id="btn-pet-water" class="flex flex-col items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-400 text-blue-600 font-black text-[10px] py-2 rounded-2xl transition-all hover:scale-105 active:scale-95">
+        <span class="text-base">💧</span><span>물주기</span><span class="text-[8px] font-bold text-blue-400">💧 +20</span>
+      </button>
+    </div>
+
+    <!-- Active Perks -->
+    <div id="active-perks-container" class="mt-3 pt-3 border-t border-stone-100 flex flex-wrap gap-1.5 min-h-[20px]">
+      <!-- Badges like [🖐️ 자동 쓰다듬기] will appear here -->
+    </div>
+  </div>
+
+  <!-- ==================== WIDGET 2.5: CHARACTER SELECTION ==================== -->
+  <div id="widget-character" class="widget-container resizable absolute w-80 glass-widget rounded-3xl p-5 z-20 hide-on-focus" style="bottom: 240px; left: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-4 mt-1 pointer-events-none">
+      <h3 class="text-xs font-black text-stone-700">🍅 토마토 친구들</h3>
+    </div>
+    <div id="character-grid" class="grid grid-cols-3 gap-2">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+
+  <!-- ==================== WIDGET 3: STORE/GACHA ==================== -->
+  <div id="widget-store" class="widget-container resizable absolute top-20 right-[350px] w-80 glass-widget rounded-3xl p-5 z-20 flex flex-col max-h-[calc(100vh-140px)] hide-on-focus">
+    <div class="drag-handle"></div>
+    <div class="bg-stone-200/60 p-1 rounded-xl flex mb-4 text-[10px]">
+      <button id="tab-btn-gacha" class="flex-1 py-1.5 font-black text-stone-700 rounded-lg bg-white shadow-sm transition-all">🎰 뽑기</button>
+      <button id="tab-btn-inventory" class="flex-1 py-1.5 font-bold text-stone-500 rounded-lg hover:text-stone-700 transition-all">📦 가방</button>
+      <button id="tab-btn-book" class="flex-1 py-1.5 font-bold text-stone-500 rounded-lg hover:text-stone-700 transition-all">📖 도감</button>
+    </div>
+
+    <!-- Panel A: Gacha -->
+    <div id="panel-gacha" class="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar">
+      <div id="gacha-display" class="bg-stone-900 border-2 border-stone-800 rounded-2xl h-24 flex flex-col items-center justify-center relative overflow-hidden text-center p-2">
+        <div id="gacha-waiting-text" class="text-emerald-400 font-mono text-[10px] leading-relaxed tracking-wider animate-pulse">
+          [ 캡슐 스탠바이 ]<br><span class="text-[9px] text-stone-400">1회: 🍃 30 / 11회 연뽑: 🍃 300</span>
+        </div>
+        <div id="gacha-animation-box" class="absolute inset-0 flex flex-col items-center justify-center bg-stone-950 hidden">
+          <span class="text-3xl animate-bounce" id="gacha-box-icon">🔴</span>
+          <span class="text-[9px] font-bold text-white mt-1" id="gacha-box-text">흔드는 중...</span>
+        </div>
+        <div id="gacha-result-list" class="absolute inset-0 bg-stone-950/95 overflow-y-auto p-2 flex flex-wrap justify-center gap-1.5 items-center hidden custom-scrollbar"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btn-pull-single" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all shadow-sm">
+          <span>🎲 단일 뽑기</span><span class="text-[8px] opacity-90">🍃 30 소모</span>
+        </button>
+        <button id="btn-pull-multi" class="bg-gradient-to-r from-amber-500 to-red-500 hover:opacity-90 text-white font-black py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all shadow-sm">
+          <span>🔥 10+1 연속</span><span class="text-[8px] opacity-90">🍃 300 소모</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel B: Inventory -->
+    <div id="panel-inventory" class="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar hidden">
+      <div id="inventory-grid" class="grid grid-cols-3 gap-1.5 overflow-y-auto max-h-[140px] p-1 border border-stone-200/50 rounded-xl bg-stone-50/50 custom-scrollbar min-h-[100px]"></div>
+      <div class="bg-white/80 border border-stone-200 rounded-xl p-2.5 text-[10px]">
+        <span id="selected-item-rarity" class="text-[8px] font-black px-1 py-0.2 rounded-md hidden"></span>
+        <div id="selected-item-name" class="font-extrabold text-stone-700 mt-1">소지품을 클릭하세요.</div>
+        <div id="selected-item-desc" class="text-[9px] text-stone-400 mt-0.5">상세 내용</div>
+        <div class="grid grid-cols-2 gap-1.5 mt-3">
+          <button id="btn-equip-item" disabled class="bg-emerald-600 text-white font-extrabold py-1.5 rounded-lg text-[10px] disabled:opacity-40">🎯 장착</button>
+          <button id="btn-merge-item" disabled class="bg-purple-600 text-white font-extrabold py-1.5 rounded-lg text-[10px] disabled:opacity-40">🔥 합성</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel C: Book -->
+    <div id="panel-book" class="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar hidden">
+      <div class="flex justify-between items-center text-[10px] font-bold text-stone-500 mb-1">
+        <span id="book-progress-percent">달성도: 0%</span><span id="book-progress-fraction">0 / 15</span>
+      </div>
+      <div class="w-full bg-stone-200/50 rounded-full h-2 overflow-hidden mb-2">
+        <div id="book-progress-bar" class="bg-gradient-to-r from-emerald-500 to-indigo-500 h-full transition-all" style="width: 0%;"></div>
+      </div>
+      <div id="book-list-container" class="grid grid-cols-3 gap-1.5 overflow-y-auto max-h-[220px] custom-scrollbar bg-stone-100/50 p-1.5 rounded-xl border border-stone-200/50"></div>
+    </div>
+  </div>
+
+  <!-- ==================== WIDGET 4: TODO ==================== -->
+  <div id="widget-todo" class="widget-container resizable absolute w-64 glass-widget rounded-3xl p-4 z-20 flex flex-col max-h-[300px] hide-on-focus" style="top: 80px; right: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-3 mt-1 pointer-events-none">
+      <h4 class="text-xs font-black tracking-wider text-stone-700 flex items-center gap-1.5"><i class="fa-solid fa-list-check text-indigo-500"></i> 오늘의 할 일</h4>
+    </div>
+    <div class="flex gap-2 mb-3">
+      <input type="text" id="todo-input" placeholder="새로운 목표를 적어보세요..." class="flex-1 bg-white/50 border border-stone-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none">
+      <button id="btn-add-todo" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-3 py-1 rounded-lg text-[10px] transition-all"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <ul id="todo-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1"></ul>
+  </div>
+
+  <!-- ==================== WIDGET 5: LO-FI MUSIC ==================== -->
+  <div id="widget-music" class="widget-container resizable absolute w-72 glass-widget rounded-3xl p-4 z-20 hide-on-focus" style="bottom: 24px; right: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-2 mt-1 pointer-events-none">
+      <h4 class="text-xs font-black tracking-wider text-stone-700 flex items-center gap-1.5"><i class="fa-solid fa-headphones text-rose-400"></i> Lo-Fi Vibe</h4>
+    </div>
+    <div class="w-full h-32 rounded-xl overflow-hidden border border-stone-200 pointer-events-auto">
+      <iframe id="youtube-iframe" width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk?controls=1&fs=0&modestbranding=1" title="Lofi Radio" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    <div class="text-[9px] font-mono text-stone-400 text-center mt-2 pointer-events-none truncate">
+      적용된 영상 ID: <span id="current-youtube-id" class="font-bold text-stone-600">jfKfPfyJRdk</span>
+    </div>
+  </div>
+
+  <!-- ==================== WIDGET 6: STATS ==================== -->
+  <div id="widget-stats" class="widget-container resizable absolute w-64 glass-widget rounded-3xl p-4 z-20 flex flex-col hide-on-focus" style="top: 350px; right: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-3 mt-1 pointer-events-none">
+      <h4 class="text-xs font-black tracking-wider text-stone-700 flex items-center gap-1.5"><i class="fa-solid fa-chart-column text-emerald-500"></i> 생산성 통계</h4>
+    </div>
+    <div class="flex flex-col gap-2 pointer-events-none">
+      <div class="flex justify-between text-[10px] font-bold text-stone-500 mb-1"><span>오늘 집중한 시간</span><span id="stat-today-time" class="text-emerald-600 font-black">0분</span></div>
+      <div class="flex items-end gap-1 h-20 border-b border-stone-200 pb-1 mt-2">
+        <div class="flex-1 bg-emerald-200 rounded-t-sm h-1/4"></div><div class="flex-1 bg-emerald-300 rounded-t-sm h-1/3"></div>
+        <div class="flex-1 bg-emerald-400 rounded-t-sm h-2/3"></div><div class="flex-1 bg-emerald-500 rounded-t-sm h-full"></div>
+        <div class="flex-1 bg-emerald-400 rounded-t-sm h-1/2"></div><div class="flex-1 bg-emerald-200 rounded-t-sm h-1/4"></div>
+        <div id="stat-bar-today" class="flex-1 bg-emerald-600 rounded-t-sm h-[5%] transition-all"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DESKTOP PET ==================== -->
+  <div id="desktop-pet" class="absolute w-40 h-40 z-40 cursor-grab active:cursor-grabbing select-none transition-transform duration-75 hide-on-focus" style="top: calc(100vh - 180px); left: calc(100vw - 180px);">
+    <div id="char-speech-bubble" class="absolute -top-14 left-1/2 bg-stone-900/85 text-white text-[10px] font-bold py-2 px-3.5 rounded-2xl text-center whitespace-nowrap opacity-0 pointer-events-none transition-all duration-300 max-w-[180px] leading-relaxed shadow-lg" style="transform: translateX(-50%) scale(0.9);">"어이 친구! 🍅"</div>
+    <svg id="damadoro-svg" viewBox="0 0 200 215" class="w-full h-full" style="pointer-events: none;">
+      <defs>
+        <!-- Body: bright top-left sphere shading -->
+        <radialGradient id="bodyGrad" cx="40%" cy="30%" r="65%">
+          <stop offset="0%"   stop-color="#ff8a8a"/>
+          <stop offset="35%"  stop-color="#f05454"/>
+          <stop offset="75%"  stop-color="#dc2626"/>
+          <stop offset="100%" stop-color="#991b1b"/>
+        </radialGradient>
+        <!-- Rim darkening -->
+        <radialGradient id="bodyRim" cx="50%" cy="50%" r="50%">
+          <stop offset="72%"  stop-color="transparent"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.22)"/>
+        </radialGradient>
+        <!-- Main gloss blob (top-left) -->
+        <radialGradient id="glossMain" cx="30%" cy="22%" r="40%">
+          <stop offset="0%"   stop-color="rgba(255,255,255,0.70)"/>
+          <stop offset="60%"  stop-color="rgba(255,255,255,0.18)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <!-- Small secondary gloss -->
+        <radialGradient id="glossSmall" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="rgba(255,255,255,0.55)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <!-- Calyx/leaf gradient -->
+        <linearGradient id="calyxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#4ade80"/>
+          <stop offset="100%" stop-color="#15803d"/>
+        </linearGradient>
+        <!-- Stem gradient -->
+        <linearGradient id="stemGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="#16a34a"/>
+          <stop offset="100%" stop-color="#4ade80"/>
+        </linearGradient>
+        <!-- Eye gradient (big kawaii eyes) -->
+        <radialGradient id="eyeGrad" cx="35%" cy="30%" r="65%">
+          <stop offset="0%"   stop-color="#2d1b00"/>
+          <stop offset="100%" stop-color="#0f0a00"/>
+        </radialGradient>
+        <!-- Drop shadow filter -->
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.18)"/>
+        </filter>
+        <filter id="shadowBlur">
+          <feGaussianBlur stdDeviation="4"/>
+        </filter>
+      </defs>
+
+      <!-- Ground shadow -->
+      <ellipse id="pet-shadow" cx="100" cy="192" rx="48" ry="9"
+               fill="rgba(180,60,60,0.22)" filter="url(#shadowBlur)"/>
+
+      <!-- ── CALYX (green top leaves, like character sheet) ── -->
+      <g id="foliage">
+        <!-- Stem -->
+        <path d="M100,64 C100,56 103,50 100,44"
+              fill="none" stroke="url(#stemGrad)" stroke-width="5"
+              stroke-linecap="round"/>
+        <!-- Back leaves (slightly darker) -->
+        <path d="M100,66 C96,54 84,44 76,50 C82,56 92,62 100,66 Z"
+              fill="#16a34a" opacity="0.85"/>
+        <path d="M100,66 C104,54 116,44 124,50 C118,56 108,62 100,66 Z"
+              fill="#16a34a" opacity="0.85"/>
+        <!-- Front leaves -->
+        <path d="M100,68 C92,52 74,46 70,58 C80,60 92,64 100,68 Z"
+              fill="url(#calyxGrad)"/>
+        <path d="M100,68 C108,52 126,46 130,58 C120,60 108,64 100,68 Z"
+              fill="url(#calyxGrad)"/>
+        <!-- Center front leaf -->
+        <path d="M100,68 C98,56 92,50 94,60 C96,64 98,66 100,68 Z"
+              fill="#22c55e"/>
+        <path d="M100,68 C102,56 108,50 106,60 C104,64 102,66 100,68 Z"
+              fill="#22c55e"/>
+        <!-- Leaf vein hints -->
+        <path d="M100,68 C94,58 82,52 76,55"
+              fill="none" stroke="#166534" stroke-width="0.7" opacity="0.5"/>
+        <path d="M100,68 C106,58 118,52 124,55"
+              fill="none" stroke="#166534" stroke-width="0.7" opacity="0.5"/>
+      </g>
+
+      <!-- ── BODY ── -->
+      <circle id="tomato-body" cx="100" cy="128" r="60"
+              fill="url(#bodyGrad)" filter="url(#dropShadow)"/>
+      <!-- Rim overlay -->
+      <circle cx="100" cy="128" r="60" fill="url(#bodyRim)"/>
+
+      <!-- Equipped item layer -->
+      <g id="equipped-item-layer"></g>
+
+      <!-- ── BLUSH CHEEKS (always visible, soft) ── -->
+      <g id="blush-layer">
+        <ellipse cx="68"  cy="138" rx="11" ry="7"  fill="#fca5a5" opacity="0.45"/>
+        <ellipse cx="132" cy="138" rx="11" ry="7"  fill="#fca5a5" opacity="0.45"/>
+      </g>
+
+      <!-- ── EYES (big kawaii style) ── -->
+      <g id="eyes">
+        <!-- Eye whites (subtle) -->
+        <ellipse cx="82"  cy="124" rx="13" ry="14" fill="white" opacity="0.12"/>
+        <ellipse cx="118" cy="124" rx="13" ry="14" fill="white" opacity="0.12"/>
+        <!-- Iris (large dark) -->
+        <ellipse id="eye-left"  cx="82"  cy="124" rx="10" ry="12" fill="url(#eyeGrad)"/>
+        <ellipse id="eye-right" cx="118" cy="124" rx="10" ry="12" fill="url(#eyeGrad)"/>
+        <!-- Large white highlight (top-right of iris — character sheet style) -->
+        <ellipse cx="87"  cy="117" rx="5"  ry="5.5" fill="white" opacity="0.92"/>
+        <ellipse cx="123" cy="117" rx="5"  ry="5.5" fill="white" opacity="0.92"/>
+        <!-- Small secondary shine -->
+        <circle  cx="78"  cy="129" r="2"             fill="white" opacity="0.55"/>
+        <circle  cx="114" cy="129" r="2"             fill="white" opacity="0.55"/>
+      </g>
+
+      <!-- ── MOUTH ── -->
+      <path id="mouth" d="M88,144 Q100,153 112,144"
+            fill="none" stroke="#1e293b" stroke-width="2.8" stroke-linecap="round"/>
+
+      <!-- ── GLOSS HIGHLIGHTS ── -->
+      <!-- Main large gloss (top-left) -->
+      <ellipse cx="78" cy="100" rx="22" ry="15" fill="url(#glossMain)"/>
+      <!-- Secondary small dot gloss -->
+      <ellipse cx="115" cy="94"  rx="7"  ry="5"  fill="url(#glossSmall)" opacity="0.6"/>
+    </svg>
+  </div>
+
+  <!-- ==================== WIDGET 7: EMOTION CONTROL ==================== -->
+  <div id="widget-emotion" class="widget-container absolute w-72 glass-widget rounded-3xl p-4 z-20 hide-on-focus" style="bottom: 280px; right: 24px;">
+    <div class="drag-handle"></div>
+    <div class="flex justify-between items-center mb-3 mt-1 pointer-events-none">
+      <h4 class="text-xs font-black tracking-wider text-stone-700 flex items-center gap-1.5">
+        <i class="fa-solid fa-masks-theater text-pink-500"></i> 표정 컨트롤
+      </h4>
+      <span id="emotion-current-label" class="text-[9px] font-black text-pink-500 bg-pink-50 border border-pink-200 px-2 py-0.5 rounded-full">neutral</span>
+    </div>
+    <div class="grid grid-cols-5 gap-1.5">
+      <!-- Row 1 -->
+      <button onclick="triggerEmotion('happy')"     title="happy"      class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-yellow-50 border border-stone-200 hover:border-yellow-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😄</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-yellow-600">happy</span>
+      </button>
+      <button onclick="triggerEmotion('neutral')"   title="neutral"    class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-stone-50 border border-stone-200 hover:border-stone-400 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😐</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-stone-600">neutral</span>
+      </button>
+      <button onclick="triggerEmotion('sad')"       title="sad"        class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-blue-50 border border-stone-200 hover:border-blue-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😢</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-blue-500">sad</span>
+      </button>
+      <button onclick="triggerEmotion('hungry')"    title="hungry"     class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-orange-50 border border-stone-200 hover:border-orange-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😋</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-orange-500">hungry</span>
+      </button>
+      <button onclick="triggerEmotion('sleepy')"    title="sleepy"     class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-indigo-50 border border-stone-200 hover:border-indigo-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😴</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-indigo-500">sleepy</span>
+      </button>
+      <!-- Row 2 -->
+      <button onclick="triggerEmotion('excited')"   title="excited"    class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-pink-50 border border-stone-200 hover:border-pink-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🤩</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-pink-500">excited</span>
+      </button>
+      <button onclick="triggerEmotion('focused')"   title="focused"    class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-red-50 border border-stone-200 hover:border-red-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🎯</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-red-500">focused</span>
+      </button>
+      <button onclick="triggerEmotion('loved')"     title="loved"      class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-rose-50 border border-stone-200 hover:border-rose-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🥰</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-rose-500">loved</span>
+      </button>
+      <button onclick="triggerEmotion('surprised')" title="surprised"  class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-amber-50 border border-stone-200 hover:border-amber-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😲</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-amber-500">surprise</span>
+      </button>
+      <button onclick="triggerEmotion('angry')"     title="angry"      class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-red-50 border border-stone-200 hover:border-red-400 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😤</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-red-600">angry</span>
+      </button>
+      <!-- Row 3 -->
+      <button onclick="triggerEmotion('shy')"         title="shy"        class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-fuchsia-50 border border-stone-200 hover:border-fuchsia-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🫣</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-fuchsia-500">shy</span>
+      </button>
+      <button onclick="triggerEmotion('cheek_pulled')" title="cheek"     class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-pink-50 border border-stone-200 hover:border-pink-400 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">😵</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-pink-600">cheek</span>
+      </button>
+      <button onclick="triggerEmotion('gift_happy')"  title="gift"       class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-yellow-50 border border-stone-200 hover:border-yellow-400 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🎁</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-yellow-600">gift</span>
+      </button>
+      <button onclick="triggerEmotion('sick')"        title="sick"       class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-lime-50 border border-stone-200 hover:border-lime-300 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">🤢</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-lime-600">sick</span>
+      </button>
+      <button onclick="triggerEmotion('determined')"  title="determined" class="emotion-btn flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/60 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-400 transition-all hover:scale-110 active:scale-95 group">
+        <span class="text-lg leading-none">💪</span><span class="text-[7px] font-bold text-stone-400 group-hover:text-emerald-600">deter</span>
+      </button>
+    </div>
+    <!-- 대사 함께 트리거 토글 -->
+    <div class="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between">
+      <label class="text-[9px] font-bold text-stone-500 flex items-center gap-1.5 cursor-pointer">
+        <input type="checkbox" id="emotion-with-speech" checked class="w-3 h-3 accent-pink-500 rounded">
+        대사도 같이 출력
+      </label>
+      <label class="text-[9px] font-bold text-stone-500 flex items-center gap-1.5 cursor-pointer">
+        <input type="checkbox" id="emotion-lock" class="w-3 h-3 accent-indigo-500 rounded">
+        자동변경 잠금
+      </label>
+    </div>
+  </div>
+  <div id="god-mode-modal" class="fixed top-0 right-0 bottom-0 w-[350px] bg-white/95 backdrop-blur-xl z-[100] shadow-2xl flex flex-col transition-transform duration-300 translate-x-full border-l border-stone-200">
+    <div class="p-6 flex flex-col h-full">
+      <div class="flex justify-between items-center mb-6 border-b border-stone-200 pb-3">
+        <h2 class="text-lg font-black text-indigo-700 flex items-center gap-2"><i class="fa-solid fa-gear"></i> Settings</h2>
+        <button id="btn-close-god-mode" class="text-stone-400 hover:text-red-500 text-2xl transition-transform hover:rotate-90"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-6">
+        
+        <!-- UI & Layout -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold text-stone-500 uppercase">1. 타이머 구조 및 스케일</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-[10px] font-bold text-stone-600 block mb-1">타이머 물리 구조</label><select id="god-select-timer-layout" class="w-full border border-stone-300 rounded-lg px-2 py-1.5 text-xs cursor-pointer"><option value="ring">서클 링 (기본)</option><option value="digital">레트로 디지털</option><option value="liquid">액체 웨이브</option></select></div>
+            <div><label class="text-[10px] font-bold text-stone-600 block mb-1">숫자 폰트</label><select id="god-select-font" class="w-full border border-stone-300 rounded-lg px-2 py-1.5 text-xs cursor-pointer"><option value="'Outfit', sans-serif">Outfit (Modern)</option><option value="'Space Mono', monospace">Space Mono</option><option value="'Gowun Dodum', sans-serif">고운 돋움</option></select></div>
+            <div class="col-span-2"><label class="text-[10px] font-bold text-stone-600 block mb-1">타이머 크기 스케일</label><input type="range" id="god-range-scale" min="5" max="20" value="10" class="w-full accent-indigo-500 h-1.5 bg-stone-200 rounded-full cursor-pointer"></div>
+            <div class="col-span-2"><label class="text-[10px] font-bold text-stone-600 block mb-1">위젯 배경 투명도</label><input type="range" id="god-range-opacity" min="10" max="100" value="85" class="w-full accent-indigo-500 h-1.5 bg-stone-200 rounded-full cursor-pointer"></div>
+          </div>
+        </div>
+
+        <!-- VFX -->
+        <div class="space-y-3 border-t border-stone-200 pt-3">
+          <h3 class="text-xs font-bold text-stone-500 uppercase">2. 시각 효과 및 테마</h3>
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+            <button onclick="setFocusScene('default')" class="bg-white border border-stone-200 py-1.5 rounded-md hover:bg-stone-50">🌈 Default</button>
+            <button onclick="setFocusScene('lofi')" class="bg-stone-800 text-amber-100 py-1.5 rounded-md hover:bg-stone-700">☕ Lo-Fi</button>
+            <button onclick="setFocusScene('cyber')" class="bg-indigo-950 text-cyan-400 py-1.5 rounded-md hover:bg-indigo-900 border border-indigo-800">🌃 Cyber</button>
+            <button onclick="setFocusScene('rain')" class="bg-emerald-950 text-emerald-200 py-1.5 rounded-md hover:bg-emerald-900">🌧️ Nature</button>
+          </div>
+          <div class="flex gap-2 mt-2"><input type="text" id="god-bg-url" placeholder="커스텀 이미지 URL" class="flex-1 border border-stone-300 rounded-lg px-2 py-1.5 text-xs"><button id="btn-apply-bg" class="bg-indigo-600 text-white text-xs font-bold px-3 rounded-lg">적용</button></div>
+          <div class="grid grid-cols-2 gap-3 text-xs font-bold text-stone-700 mt-3">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="god-toggle-particles" checked class="w-4 h-4 text-indigo-600 rounded"> 힐링 파티클</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="god-toggle-noise" checked class="w-4 h-4 text-indigo-600 rounded"> 필름 노이즈(Grain)</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="god-toggle-timesync" class="w-4 h-4 text-indigo-600 rounded"> 낮/밤 동기화</label>
+            <div><select id="god-select-weather" class="w-full border border-stone-300 rounded-lg px-2 py-1 text-xs cursor-pointer"><option value="none">날씨: 맑음</option><option value="rain">비 내림</option><option value="snow">눈 내림</option></select></div>
+          </div>
+        </div>
+
+        <!-- Pet -->
+        <div class="space-y-3 border-t border-stone-200 pt-3">
+          <h3 class="text-xs font-bold text-stone-500 uppercase">3. 펫 커스텀 염색</h3>
+          <div class="flex items-center gap-4">
+            <div class="flex flex-col gap-1"><label class="text-[9px] font-bold text-stone-600">바디 컬러</label><input type="color" id="god-color-body" value="#ef4444" class="w-12 h-8 rounded cursor-pointer border-0 p-0"></div>
+            <div class="flex flex-col gap-1"><label class="text-[9px] font-bold text-stone-600">포인트 컬러</label><input type="color" id="god-color-accent" value="#b91c1c" class="w-12 h-8 rounded cursor-pointer border-0 p-0"></div>
+            <button id="btn-apply-color" class="bg-gradient-to-r from-pink-500 to-violet-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm">🎨 염색 적용</button>
+            <button id="btn-reset-color" class="bg-stone-200 text-stone-600 text-[10px] font-bold px-2 py-2 rounded-lg">초기화</button>
+          </div>
+        </div>
+
+        <!-- YouTube Music -->
+        <div class="space-y-3 border-t border-stone-200 pt-3">
+          <h3 class="text-xs font-bold text-stone-500 uppercase">4. 유튜브 음악 링크 변경</h3>
+          <div class="flex gap-2 mt-2">
+            <input type="text" id="god-youtube-url" placeholder="유튜브 영상 링크 (URL)" class="flex-1 border border-stone-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-rose-500">
+            <button id="btn-apply-youtube" class="bg-rose-500 text-white text-xs font-bold px-3 rounded-lg hover:bg-rose-600 transition-colors">적용</button>
+          </div>
+          <p class="text-[9px] text-stone-400">* 유튜브 라이브 스트리밍은 오류 153이 뜰 수 있으니, 10시간짜리 일반 VOD 영상을 추천합니다.</p>
+        </div>
+
+        <!-- Developer Cheats -->
+        <div class="space-y-3 border-t border-stone-200 pt-3 mb-10">
+          <h3 class="text-xs font-bold text-rose-500 uppercase flex items-center gap-1.5"><i class="fa-solid fa-bug"></i> Developer Cheats</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="cheat-add-leaves" class="bg-emerald-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-emerald-700 transition-colors">🍃 잎사귀 +1000</button>
+            <button id="cheat-fast-timer" class="bg-amber-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-amber-700 transition-colors">⏰ 타이머 10초</button>
+            <button id="cheat-max-stats" class="bg-sky-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-sky-700 transition-colors">💖 스탯 최대로</button>
+            <button id="cheat-add-session" class="bg-indigo-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-indigo-700 transition-colors">🔥 세션 +1</button>
+            <button id="cheat-complete-collection" class="bg-purple-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-purple-700 transition-colors">📖 전도감 해금</button>
+            <button id="cheat-toggle-decay" class="bg-stone-700 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-stone-800 transition-colors">🔒 스탯 감소 잠금</button>
+            <button id="cheat-reset-db" class="col-span-2 bg-red-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-red-700 transition-colors">🧹 데이터 초기화</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-alert" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 hidden">
+    <div class="bg-white border border-stone-200 rounded-3xl p-5 max-w-xs w-full shadow-2xl text-center transform scale-95 transition-transform duration-300" id="custom-alert-box">
+      <div class="text-3xl mb-2.5" id="alert-emoji">📢</div>
+      <h3 class="text-xs font-black text-stone-800 mb-1.5" id="alert-title">안내 알림</h3>
+      <p class="text-[10px] text-stone-500 leading-relaxed mb-4" id="alert-desc">상세 내용이 표시되는 구역입니다.</p>
+      <button id="btn-alert-confirm" class="w-full bg-red-500 hover:bg-red-600 text-white font-extrabold py-2 rounded-lg text-xs transition-colors">확인</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="physics.js"></script>
+  <script src="timer.js"></script>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script src="interactions.js"></script>
+  <script>
+    const EMOTION_SPEECHES = {
+      happy:       ["오늘 기분 최고야! ☀️", "너랑 있으면 좋아! 💖", "행복해~ 🌈"],
+      neutral:     ["음... 뭐하지 🤔", "그냥 있는 중~ 😐", "심심하다..."],
+      sad:         ["나 좀 돌봐줘... 😢", "쓰다듬어줘... 🥺", "훌쩍... 💧"],
+      hungry:      ["배고파! 비료 줘! 🌱", "목말라! 물 줘! 💧", "영양이 부족해 😵"],
+      sleepy:      ["으으... 졸려... 😴", "zzzZZZ... 💤", "잠깐 눈 좀 감아도 돼? 🌙"],
+      excited:     ["오예!! 대박이야! 🎉", "너무 신나!! 🤩", "야호!! 🎊"],
+      focused:     ["집중 중... 방해 금지! 🤫", "같이 달리는 중! 💨", "파이팅!! 🔥"],
+      loved:       ["나 지금 너무 행복해! 🥰", "애정도 만땅! 💖", "이게 바로 행복이지~ ✨"],
+      surprised:   ["앗! 깜짝이야! 😲", "뭔가 왔어?! 👀", "오오오!!!! ✨"],
+      angry:       ["으으으!! 😤", "지금 화났어! 💢", "그러면 안 되잖아!! 🔥"],
+      shy:         ["...부끄러워 >//< 💕", "그렇게 보지 마... 🫣", "으읏 얼굴 빨개지잖아 🍅"],
+      cheek_pulled:["야야야!! 🤪", "으아 늘어나잖아!! 😤", "그만해 간지러워!! 💢"],
+      gift_happy:  ["선물이다!!!! 🎁", "진짜진짜 고마워!!! 💖", "이거 완전 내 취향이야!! ⭐"],
+      sick:        ["으으... 몸이 안 좋아... 🤢", "약 줘... 🌡️", "오늘 좀 쉬어도 돼? 💊"],
+      determined:  ["이번엔 꼭 해낼 거야! 💪", "집중!! 나만 믿어!! 🎯", "같이 달리자!! 🏃"],
+    };
+
+    let _emotionLocked = false;
+
+    function triggerEmotion(emotion) {
+      _emotionLocked = document.getElementById('emotion-lock')?.checked || false;
+      if (typeof applyExpression === 'function') applyExpression(emotion);
+      try { if (typeof currentEmotion !== 'undefined') currentEmotion = emotion; } catch(e) {}
+      const withSpeech = document.getElementById('emotion-with-speech')?.checked ?? true;
+      if (withSpeech && typeof speakBubble === 'function') {
+        const pool = EMOTION_SPEECHES[emotion] || ["🍅"];
+        speakBubble(pool[Math.floor(Math.random() * pool.length)], 2800);
+      }
+      const label = document.getElementById('emotion-current-label');
+      if (label) label.textContent = emotion;
+      document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('ring-2','ring-pink-400','bg-pink-50'));
+      const activeBtn = document.querySelector(`.emotion-btn[title="${emotion}"]`);
+      if (activeBtn) activeBtn.classList.add('ring-2','ring-pink-400','bg-pink-50');
+    }
+
+    // 자동변경 잠금
+    const _origComputeEmotion = window.computeEmotion;
+    window.computeEmotion = function() {
+      if (_emotionLocked) return typeof currentEmotion !== 'undefined' ? currentEmotion : 'neutral';
+      return typeof _origComputeEmotion === 'function' ? _origComputeEmotion() : 'neutral';
+    };
+
+    // ── 물방울 파티클 헬퍼 ──
+    function spawnWaterParticles() {
+      const petEl = document.getElementById('desktop-pet');
+      if (!petEl) return;
+      const rect = petEl.getBoundingClientRect();
+      for (let i = 0; i < 5; i++) {
+        const p = document.createElement('div');
+        p.style.cssText = `position:fixed;left:${rect.left+rect.width/2+(Math.random()-.5)*40}px;top:${rect.top+rect.height/2}px;font-size:${10+Math.random()*10}px;pointer-events:none;z-index:9999;transition:all 0.8s ease-out;opacity:1;`;
+        p.textContent = ['💧','🌊','💦','✨','🌀'][Math.floor(Math.random()*5)];
+        document.body.appendChild(p);
+        setTimeout(() => { p.style.transform=`translateY(-${40+Math.random()*30}px) translateX(${(Math.random()-.5)*30}px)`; p.style.opacity='0'; }, 50);
+        setTimeout(() => p.remove(), 900);
+      }
+    }
+
+    window.onload = () => {
+      loadDatabase();
+      syncInputsWithState();
+      applySettings();
+      updateTimerUI();
+      if(typeof updateStatsUI === 'function') updateStatsUI();
+      if(typeof renderInventory === 'function') renderInventory();
+      if(typeof renderCollectionBook === 'function') renderCollectionBook();
+      if(typeof renderCharacterGrid === 'function') renderCharacterGrid();
+      renderTodos();
+      restoreLayouts();
+      initTaskbar();
+      if(typeof drawEquippedItemSVG === 'function' && appState.equippedItem) {
+        drawEquippedItemSVG(appState.equippedItem);
+      }
+
+      makeDraggable('widget-timer');
+      makeDraggable('widget-status', '.drag-handle');
+      makeDraggable('widget-character', '.drag-handle');
+      makeDraggable('widget-todo', '.drag-handle');
+      makeDraggable('widget-music', '.drag-handle');
+      makeDraggable('widget-stats', '.drag-handle');
+      makeDraggable('widget-store', '.drag-handle');
+      makeDraggable('widget-emotion', '.drag-handle');
+
+      requestAnimationFrame(loopPhysics);
+
+      // ── 쓰다듬기 버튼 ──
+      document.getElementById('btn-pet-stroke')?.addEventListener('click', () => {
+        initAudio();
+        appState.affection = Math.min(100, appState.affection + 5);
+        saveDatabase(); updateAllUI();
+        if (typeof spawnHeartParticles === 'function') spawnHeartParticles();
+        playThumpSound(0.1, 400);
+        if (typeof applyExpression === 'function') applyExpression('happy');
+        if (typeof speakBubble === 'function') {
+          const msgs = ['헤헤 간지러워! 😆','더 해줘~ 💕','좋아좋아! 🥰','기분 좋다~ ✨','아이구 좋아라~ 🍅'];
+          speakBubble(msgs[Math.floor(Math.random()*msgs.length)], 2500);
+        }
+        const btn = document.getElementById('btn-pet-stroke');
+        btn.style.transform='scale(0.9)'; setTimeout(()=>btn.style.transform='',150);
+      });
+
+      // ── 비료주기 버튼 ──
+      document.getElementById('btn-pet-feed')?.addEventListener('click', () => {
+        initAudio();
+        appState.hunger = Math.min(100, appState.hunger + 20);
+        saveDatabase(); updateAllUI();
+        if (typeof spawnFeedParticles === 'function') spawnFeedParticles();
+        playThumpSound(0.12, 350);
+        if (typeof applyExpression === 'function') applyExpression('happy');
+        if (typeof speakBubble === 'function') {
+          const msgs = ['냠냠! 맛있다! 😋','오예! 비료야! 🌱','이게 제일 좋아! 🍽️','배부르다~ 😊'];
+          speakBubble(msgs[Math.floor(Math.random()*msgs.length)], 2500);
+        }
+        const btn = document.getElementById('btn-pet-feed');
+        btn.style.transform='scale(0.9)'; setTimeout(()=>btn.style.transform='',150);
+      });
+
+      // ── 물주기 버튼 ──
+      document.getElementById('btn-pet-water')?.addEventListener('click', () => {
+        initAudio();
+        appState.thirst = Math.min(100, appState.thirst + 20);
+        saveDatabase(); updateAllUI();
+        spawnWaterParticles();
+        playThumpSound(0.12, 500);
+        if (typeof applyExpression === 'function') applyExpression('happy');
+        if (typeof speakBubble === 'function') {
+          const msgs = ['꿀꺽꿀꺽~ 시원해! 💧','물이 최고야! 🌊','감사합니다~ 😌','수분 충전 완료! ✨'];
+          speakBubble(msgs[Math.floor(Math.random()*msgs.length)], 2500);
+        }
+        const btn = document.getElementById('btn-pet-water');
+        btn.style.transform='scale(0.9)'; setTimeout(()=>btn.style.transform='',150);
+      });
+    };
+
+    setInterval(() => { if(appState.enableTimeSync) applySettings(); }, 60000);
+  </script>
+</body>
+</html>

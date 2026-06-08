@@ -1,0 +1,179 @@
+
+<style>
+  .cp-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+  .cp-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+  .cp-val{font-size:13px;font-weight:500;color:var(--color-text-primary);min-width:36px;text-align:right}
+  .cp-bar-bg{height:6px;background:var(--color-background-secondary);border-radius:99px;margin-bottom:12px;overflow:hidden}
+  .cp-bar{height:100%;border-radius:99px;transition:width .2s}
+  .cp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .cp-btn{padding:8px 0;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-size:13px;cursor:pointer;transition:background .15s}
+  .cp-btn:hover{background:var(--color-background-secondary)}
+  .cp-btn:active{transform:scale(.98)}
+  .cp-btn.danger{border-color:var(--color-border-danger);color:var(--color-text-danger)}
+  .cp-btn.danger:hover{background:var(--color-background-danger)}
+  .cp-btn.success{border-color:var(--color-border-success);color:var(--color-text-success)}
+  .cp-btn.success:hover{background:var(--color-background-success)}
+  .cp-section-title{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .cp-toast{position:absolute;top:12px;right:12px;background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);padding:6px 12px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+
+<div style="padding:1rem 0;position:relative">
+  <div id="cp-toast" class="cp-toast"></div>
+
+  <div class="cp-card">
+    <div class="cp-section-title">상태 슬라이더</div>
+
+    <div class="cp-label"><span>💖 애정도 (affection)</span><span class="cp-val" id="v-aff">50</span></div>
+    <input type="range" min="0" max="100" value="50" id="s-aff" style="width:100%;margin-bottom:4px">
+    <div class="cp-bar-bg"><div class="cp-bar" id="b-aff" style="width:50%;background:#ef4444"></div></div>
+
+    <div class="cp-label"><span>🌱 비료도 (hunger)</span><span class="cp-val" id="v-hun">80</span></div>
+    <input type="range" min="0" max="100" value="80" id="s-hun" style="width:100%;margin-bottom:4px">
+    <div class="cp-bar-bg"><div class="cp-bar" id="b-hun" style="width:80%;background:#0ea5e9"></div></div>
+
+    <div class="cp-label"><span>💧 수분도 (thirst)</span><span class="cp-val" id="v-thi">90</span></div>
+    <input type="range" min="0" max="100" value="90" id="s-thi" style="width:100%;margin-bottom:4px">
+    <div class="cp-bar-bg"><div class="cp-bar" id="b-thi" style="width:90%;background:#3b82f6"></div></div>
+
+    <button class="cp-btn success" style="width:100%;margin-top:4px" onclick="applyStats()">적용하기</button>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-section-title">잎사귀 (leaves)</div>
+    <div class="cp-label"><span>🍃 현재 잎사귀</span><span class="cp-val" id="v-leaf">—</span></div>
+    <input type="range" min="0" max="9999" step="10" value="150" id="s-leaf" style="width:100%;margin-bottom:8px">
+    <div class="cp-grid">
+      <button class="cp-btn" onclick="addLeaves(100)">+100</button>
+      <button class="cp-btn" onclick="addLeaves(500)">+500</button>
+      <button class="cp-btn" onclick="addLeaves(1000)">+1,000</button>
+      <button class="cp-btn success" onclick="applyLeaves()">슬라이더 값 적용</button>
+    </div>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-section-title">빠른 조작</div>
+    <div class="cp-grid">
+      <button class="cp-btn success" onclick="maxAll()">모두 MAX</button>
+      <button class="cp-btn" onclick="fastTimer()">타이머 10초</button>
+      <button class="cp-btn" onclick="addSession()">세션 +1</button>
+      <button class="cp-btn danger" onclick="resetAll()">전체 초기화</button>
+    </div>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-section-title">현재 게임 상태</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">
+        <div style="font-size:11px;color:var(--color-text-tertiary)">타이머 모드</div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)" id="st-mode">—</div>
+      </div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">
+        <div style="font-size:11px;color:var(--color-text-tertiary)">연속 성공</div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)" id="st-streak">—</div>
+      </div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">
+        <div style="font-size:11px;color:var(--color-text-tertiary)">오늘 집중</div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)" id="st-focus">—</div>
+      </div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">
+        <div style="font-size:11px;color:var(--color-text-tertiary)">잎사귀</div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)" id="st-leaves">—</div>
+      </div>
+    </div>
+    <button class="cp-btn" style="width:100%;margin-top:8px" onclick="refreshStatus()"><i class="ti ti-refresh" aria-hidden="true"></i> 새로고침</button>
+  </div>
+</div>
+
+<script>
+function getState(){try{const r=localStorage.getItem('DAMADORO_SPLIT_V2');return r?JSON.parse(r):null}catch(e){return null}}
+function setState(obj){try{const cur=getState()||{};const merged={...cur,...obj};localStorage.setItem('DAMADORO_SPLIT_V2',JSON.stringify(merged));return true}catch(e){return false}}
+
+function toast(msg){const t=document.getElementById('cp-toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2000)}
+
+function syncSliders(){
+  const s=getState();
+  if(!s)return;
+  document.getElementById('s-aff').value=s.affection??50;
+  document.getElementById('s-hun').value=s.hunger??80;
+  document.getElementById('s-thi').value=s.thirst??90;
+  document.getElementById('s-leaf').value=s.leaves??150;
+  updateDisplay('aff',s.affection??50);
+  updateDisplay('hun',s.hunger??80);
+  updateDisplay('thi',s.thirst??90);
+  document.getElementById('v-leaf').textContent=s.leaves??150;
+}
+
+function updateDisplay(key,val){
+  document.getElementById('v-'+key).textContent=val;
+  document.getElementById('b-'+key).style.width=val+'%';
+}
+
+['aff','hun','thi'].forEach(k=>{
+  const id={aff:'s-aff',hun:'s-hun',thi:'s-thi'}[k];
+  document.getElementById(id).addEventListener('input',e=>{
+    updateDisplay(k,e.target.value);
+  });
+});
+document.getElementById('s-leaf').addEventListener('input',e=>{
+  document.getElementById('v-leaf').textContent=e.target.value;
+});
+
+function applyStats(){
+  const aff=+document.getElementById('s-aff').value;
+  const hun=+document.getElementById('s-hun').value;
+  const thi=+document.getElementById('s-thi').value;
+  setState({affection:aff,hunger:hun,thirst:thi});
+  toast('상태 적용 완료!');
+  refreshStatus();
+}
+function applyLeaves(){
+  const v=+document.getElementById('s-leaf').value;
+  setState({leaves:v});
+  toast('잎사귀 적용 완료!');
+  refreshStatus();
+}
+function addLeaves(n){
+  const s=getState();
+  const cur=(s&&s.leaves)||0;
+  const next=cur+n;
+  setState({leaves:next});
+  document.getElementById('s-leaf').value=Math.min(next,9999);
+  document.getElementById('v-leaf').textContent=next;
+  toast('🍃 +'+n+' 적용!');
+  refreshStatus();
+}
+function maxAll(){
+  setState({affection:100,hunger:100,thirst:100});
+  document.getElementById('s-aff').value=100;document.getElementById('s-hun').value=100;document.getElementById('s-thi').value=100;
+  updateDisplay('aff',100);updateDisplay('hun',100);updateDisplay('thi',100);
+  toast('모든 스탯 MAX!');
+  refreshStatus();
+}
+function fastTimer(){
+  setState({timeLeft:10});
+  toast('타이머를 10초로 설정했어요');
+  refreshStatus();
+}
+function addSession(){
+  const s=getState();
+  const cur=(s&&s.consecutiveSuccess)||0;
+  setState({consecutiveSuccess:Math.min(cur+1,4)});
+  toast('세션 +1 적용!');
+  refreshStatus();
+}
+function resetAll(){
+  if(confirm('정말 모든 데이터를 초기화할까요?')){localStorage.removeItem('DAMADORO_SPLIT_V2');toast('초기화 완료');refreshStatus();}
+}
+function refreshStatus(){
+  const s=getState();
+  if(!s){document.getElementById('st-mode').textContent='데이터 없음';return;}
+  const modeMap={focus:'집중',break:'단기 휴식',long_break:'긴 휴식'};
+  document.getElementById('st-mode').textContent=modeMap[s.timerMode]||s.timerMode||'—';
+  document.getElementById('st-streak').textContent=(s.consecutiveSuccess||0)+' / 4';
+  document.getElementById('st-focus').textContent=(s.todayFocusMinutes||0)+'분';
+  document.getElementById('st-leaves').textContent=(s.leaves||0)+'개';
+  syncSliders();
+}
+refreshStatus();
+setInterval(refreshStatus,3000);
+</script>
