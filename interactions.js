@@ -511,7 +511,6 @@ const Minigame = (() => {
   }
 
   function startGame(type) {
-    stopGame();
     gameType = type;
     window._lastGameType = type; // Fix: save for 다시 하기 button
     score = 0;

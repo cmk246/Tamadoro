@@ -519,10 +519,7 @@
             <button id="cheat-add-leaves" class="bg-emerald-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-emerald-700 transition-colors">🍃 잎사귀 +1000</button>
             <button id="cheat-fast-timer" class="bg-amber-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-amber-700 transition-colors">⏰ 타이머 10초</button>
             <button id="cheat-max-stats" class="bg-sky-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-sky-700 transition-colors">💖 스탯 최대로</button>
-            <button id="cheat-add-session" class="bg-indigo-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-indigo-700 transition-colors">🔥 세션 +1</button>
-            <button id="cheat-complete-collection" class="bg-purple-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-purple-700 transition-colors">📖 전도감 해금</button>
-            <button id="cheat-toggle-decay" class="bg-stone-700 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-stone-800 transition-colors">🔒 스탯 감소 잠금</button>
-            <button id="cheat-reset-db" class="col-span-2 bg-red-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-red-700 transition-colors">🧹 데이터 초기화</button>
+            <button id="cheat-reset-db" class="bg-red-600 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-red-700 transition-colors">🧹 데이터 초기화</button>
           </div>
         </div>
       </div>
@@ -615,9 +612,6 @@
       renderTodos();
       restoreLayouts();
       initTaskbar();
-      if(typeof drawEquippedItemSVG === 'function' && appState.equippedItem) {
-        drawEquippedItemSVG(appState.equippedItem);
-      }
 
       makeDraggable('widget-timer');
       makeDraggable('widget-status', '.drag-handle');

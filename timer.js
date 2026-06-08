@@ -15,8 +15,8 @@ function handleTimerTick() {
     const isLegendary = typeof hasInventoryGrade === 'function' && hasInventoryGrade('S');
     const isHero = typeof hasInventoryGrade === 'function' && hasInventoryGrade('A');
 
-    // 1. Decay (Skip if UR-grade exists or cheat is active)
-    if (!isMythic && !window._cheatDecayDisabled) {
+    // 1. Decay (Skip if UR-grade exists)
+    if (!isMythic) {
       if (tickCount % 40 === 0) { // Every 40s
         appState.hunger = Math.max(0, appState.hunger - 1);
         appState.thirst = Math.max(0, appState.thirst - 1);
@@ -39,10 +39,8 @@ function handleTimerTick() {
       }
     }
 
-    // Update UI every tick to reflect stat changes if any
+    // Update status bars every tick
     if (typeof updateAllUI === 'function') {
-        // We don't want to call full updateAllUI every sec (expensive)
-        // Just update status bars
         const bars = { 'affection': 'red', 'hunger': 'sky', 'thirst': 'blue' };
         Object.keys(bars).forEach(k => {
           const text = document.getElementById(`${k}-text`);
@@ -66,21 +64,24 @@ function completeSessionCycle() {
 
   if (appState.timerMode === 'focus') {
     appState.consecutiveSuccess++;
-    appState.todayFocusMinutes += 25; // Track stats
+    appState.todayFocusMinutes += 25;
     
     // Calculate Rewards with Bonuses
     const collMult = typeof getCollectionBonusMultiplier === 'function' ? getCollectionBonusMultiplier() : 1;
     const equipMult = typeof getEquippedBonusMultiplier === 'function' ? getEquippedBonusMultiplier() : 1;
     
+    // ★ 연속 성공 보너스: 1연속=x1.0, 2연속=x1.3, 3연속=x1.6, 4연속=x2.0
+    const streakBonus = 1 + (appState.consecutiveSuccess - 1) * 0.33;
     const baseLeaves = 50;
-    const finalLeaves = Math.floor(baseLeaves * collMult);
+    const finalLeaves = Math.floor(baseLeaves * collMult * streakBonus);
     appState.leaves += finalLeaves;
     
     const baseAffection = 5;
     const finalAffection = Math.min(100, appState.affection + Math.floor(baseAffection * equipMult));
     appState.affection = finalAffection;
 
-    if (appState.consecutiveSuccess >= 4) {
+    const isLongBreakNext = appState.consecutiveSuccess >= 4;
+    if (isLongBreakNext) {
       appState.timerMode = 'long_break';
       appState.timeLeft = 30 * 60;
       appState.longBreakLockTimeLeft = 15 * 60;
@@ -90,14 +91,17 @@ function completeSessionCycle() {
     }
     
     playChime(true);
-    if (typeof petReact === 'function') petReact(appState.consecutiveSuccess >= 4 ? 'long_break' : 'focus_end');
-    showCustomAlert("🍅 집중 완료", `성공적으로 세션을 마쳤습니다!\n보상: 🍃 +${finalLeaves} / 💖 애정도 상승\n(현재 패시브 보너스: x${collMult.toFixed(2)})`, "🎉");
+    if (typeof petReact === 'function') petReact(isLongBreakNext ? 'long_break' : 'focus_end');
+    showCustomAlert(
+      "🍅 집중 완료",
+      `세션 성공! ${appState.consecutiveSuccess}연속 🔥\n보상: 🍃 +${finalLeaves} (연속보너스 x${streakBonus.toFixed(2)}) / 💖 애정도 상승\n패시브 보너스: x${collMult.toFixed(2)}`,
+      "🎉"
+    );
   } else {
     // Break or long_break finished → go back to focus
     const wasLongBreak = appState.timerMode === 'long_break';
     appState.timerMode = 'focus';
     appState.timeLeft = 25 * 60;
-    // Reset streak only after the long break is fully completed
     if (wasLongBreak) {
       appState.consecutiveSuccess = 0;
     }
@@ -109,27 +113,81 @@ function completeSessionCycle() {
   saveDatabase();
   updateTimerUI();
   if (typeof updateStatsUI === 'function') updateStatsUI();
+
+  // ★ 자동으로 다음 타이머 시작 (알림 확인 후 바로 시작)
+  setTimeout(() => {
+    autoStartNextSession();
+  }, 1500);
+}
+
+// ★ 자동 다음 세션 시작
+function autoStartNextSession() {
+  if (appState.timerActive) return; // 이미 실행 중이면 스킵
+  appState.timerActive = true;
+  tickCount = 0;
+  saveDatabase();
+  timerInterval = setInterval(handleTimerTick, 1000);
+  updateTimerUI();
+  if (appState.timerMode === 'focus') {
+    if (typeof petReact === 'function') petReact('focus_start');
+    else if (typeof speakBubble === 'function') speakBubble("집중 시작! 화이팅! 🔥");
+  } else {
+    if (typeof speakBubble === 'function') speakBubble("휴식 타이머 자동 시작! 😌");
+  }
 }
 
 function startTimer() {
   initAudio();
   if (appState.timerActive) return;
   appState.timerActive = true;
+  tickCount = 0;
   saveDatabase();
   timerInterval = setInterval(handleTimerTick, 1000);
   updateTimerUI();
   if (typeof petReact === 'function') petReact('focus_start');
-  else speakBubble("집중 시작! 화이팅! 🔥");
+  else if (typeof speakBubble === 'function') speakBubble("집중 시작! 화이팅! 🔥");
 }
 
+// ★ PAUSE → 포기(실패) 처리
 function pauseTimer() {
   if (!appState.timerActive) return;
-  clearInterval(timerInterval);
-  timerInterval = null;
-  appState.timerActive = false;
-  saveDatabase();
-  updateTimerUI();
-  speakBubble("잠시 일시 정지... ⏸️");
+
+  // 집중 세션 중에만 포기 처리 (휴식 중 정지는 그냥 멈춤)
+  if (appState.timerMode === 'focus') {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    appState.timerActive = false;
+    tickCount = 0;
+
+    // 실패 패널티: 연속 스트릭 초기화
+    const lostStreak = appState.consecutiveSuccess;
+    appState.consecutiveSuccess = 0;
+    appState.timerMode = 'focus';
+    appState.timeLeft = 25 * 60;
+
+    saveDatabase();
+    updateTimerUI();
+
+    playChime(false);
+    if (typeof petReact === 'function') {
+      // 임시로 sad 표정 트리거
+      if (typeof applyExpression === 'function') applyExpression('sad');
+    }
+    if (typeof speakBubble === 'function') speakBubble("포기하면 안 되는데... 😢");
+
+    const penaltyMsg = lostStreak > 0
+      ? `연속 ${lostStreak}회 스트릭이 사라졌습니다 💔\n처음부터 다시 시작해요!`
+      : "세션을 포기했습니다. 다시 도전해봐요!";
+    showCustomAlert("❌ 세션 포기", penaltyMsg, "😞");
+  } else {
+    // 휴식 중 정지: 타이머만 멈춤 (패널티 없음)
+    clearInterval(timerInterval);
+    timerInterval = null;
+    appState.timerActive = false;
+    saveDatabase();
+    updateTimerUI();
+    if (typeof speakBubble === 'function') speakBubble("휴식 타이머 일시정지 ⏸️");
+  }
 }
 
 function skipTimer() {
@@ -144,9 +202,10 @@ function skipTimer() {
   appState.timerMode = 'focus';
   appState.timeLeft = 25 * 60;
   if (wasLongBreak) appState.consecutiveSuccess = 0;
+  tickCount = 0;
   saveDatabase();
   updateTimerUI();
-  speakBubble("휴식 스킵! 다음 세션으로 복구 완료.");
+  if (typeof speakBubble === 'function') speakBubble("휴식 스킵! 다음 세션으로 복구 완료.");
 }
 
 function updateTimerUI() {
@@ -161,9 +220,8 @@ function updateTimerUI() {
   });
 
   const total = appState.timerMode === 'focus' ? (25 * 60) : (appState.timerMode === 'break' ? (5 * 60) : (30 * 60));
-  const pct = appState.timeLeft / total; // 1 to 0
+  const pct = appState.timeLeft / total;
   
-  // FIX 5: Accurate SVG Math. Circumference of r=110 is 2 * PI * 110 ≈ 691.15
   const ring = document.getElementById('timer-progress-ring');
   if(ring) ring.style.strokeDashoffset = 691.15 * (1 - pct);
 
@@ -213,6 +271,24 @@ function updateTimerUI() {
     document.body.classList.add('focus-active');
   } else {
     document.body.classList.remove('focus-active');
+  }
+
+  // ★ 버튼 UI: 집중 중이면 PAUSE → "포기" 표시
+  const pauseBtn = document.getElementById('btn-timer-pause');
+  if (pauseBtn) {
+    if (isFocus && appState.timerActive) {
+      pauseBtn.innerHTML = '<i class="fa-solid fa-flag"></i> 포기';
+      pauseBtn.className = 'bg-red-100 hover:bg-red-200 text-red-600 font-extrabold py-4 px-10 rounded-[20px] text-xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95';
+    } else {
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> PAUSE';
+      pauseBtn.className = 'bg-stone-100 hover:bg-stone-200 text-stone-600 font-extrabold py-4 px-10 rounded-[20px] text-xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95';
+    }
+  }
+
+  // ★ START 버튼: 타이머 실행 중이면 숨김
+  const startBtn = document.getElementById('btn-timer-start');
+  if (startBtn) {
+    startBtn.style.display = appState.timerActive ? 'none' : '';
   }
 
   // Skip logic

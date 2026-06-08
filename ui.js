@@ -428,48 +428,5 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cheat-add-leaves')?.addEventListener('click', () => { appState.leaves += 1000; saveDatabase(); updateAllUI(); speakBubble("잎사귀가 쏟아진다! 💸"); });
   document.getElementById('cheat-fast-timer')?.addEventListener('click', () => { appState.timeLeft = 10; saveDatabase(); updateTimerUI(); speakBubble("시간아 달려라! 🏃"); });
   document.getElementById('cheat-max-stats')?.addEventListener('click', () => { appState.affection = 100; appState.hunger = 100; appState.thirst = 100; saveDatabase(); updateAllUI(); speakBubble("완벽한 상태야! ✨"); });
-  
-  document.getElementById('cheat-add-session')?.addEventListener('click', () => {
-    appState.consecutiveSuccess = Math.min(appState.consecutiveSuccess + 1, 4);
-    saveDatabase();
-    updateTimerUI();
-    speakBubble("세션 스트릭 추가! 🔥");
-  });
-
-  document.getElementById('cheat-complete-collection')?.addEventListener('click', () => {
-    if (!appState.inventory) appState.inventory = {};
-    Object.keys(ITEMS).forEach(id => {
-      if (!appState.inventory[id]) appState.inventory[id] = 1;
-    });
-    saveDatabase();
-    updateAllUI();
-    speakBubble("모든 아이템을 획득했어! 📖");
-  });
-
-  let _decayDisabled = false;
-  document.getElementById('cheat-toggle-decay')?.addEventListener('click', (e) => {
-    _decayDisabled = !_decayDisabled;
-    window._cheatDecayDisabled = _decayDisabled; // Share with timer.js
-    const btn = e.target;
-    btn.textContent = _decayDisabled ? "🔓 스탯 감소 해제" : "🔒 스탯 감소 잠금";
-    btn.classList.toggle('bg-stone-700');
-    btn.classList.toggle('bg-emerald-700');
-    speakBubble(_decayDisabled ? "이제 스탯이 떨어지지 않아! 🔒" : "다시 스탯이 떨어지기 시작해! ⚠️");
-  });
-
   document.getElementById('cheat-reset-db')?.addEventListener('click', () => { if(confirm("모든 데이터를 초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } });
-
-  // Global Keydown for Modals
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.getElementById('god-mode-modal')?.classList.add('translate-x-full');
-      const customAlert = document.getElementById('custom-alert');
-      if (customAlert && !customAlert.classList.contains('hidden')) {
-        document.getElementById('btn-alert-confirm')?.click();
-      }
-      if (typeof window.Minigame?.closeModal === 'function') {
-        window.Minigame.closeModal();
-      }
-    }
-  });
 });
